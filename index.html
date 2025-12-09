@@ -1,0 +1,1109 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <link rel="manifest" href="manifest.json">
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Sales Tracker</title>
+    <!-- Libraries -->
+    <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        :root {
+            --primary-yellow: #FFDA29;
+            --primary-black: #000000;
+            --bg-white: #FFFFFF;
+            --bg-gray: #F5F5F5;
+            --danger: #FF3B30;
+            --success: #34C759;
+            --text-grey: #666666;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-gray);
+            margin: 0;
+            padding: 0;
+            color: var(--primary-black);
+            padding-bottom: 90px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* HEADER */
+        header {
+            background-color: var(--primary-yellow);
+            padding: 15px;
+            text-align: center;
+            font-weight: 800;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            padding: 15px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        /* CARDS */
+        .card {
+            background: var(--bg-white);
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        }
+
+        .card h3 {
+            margin-top: 0;
+            border-bottom: 3px solid var(--primary-yellow);
+            padding-bottom: 10px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* FORM ELEMENTS */
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        input:focus,
+        select:focus {
+            outline: none;
+            border-color: var(--primary-yellow);
+            box-shadow: 0 0 0 3px rgba(255, 218, 41, 0.2);
+        }
+
+        /* CHECKBOX HIGH GP */
+        .checkbox-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .checkbox-wrapper input {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--primary-black);
+        }
+
+        /* BUTTONS */
+        .btn {
+            background-color: var(--primary-black);
+            color: var(--primary-yellow);
+            border: none;
+            padding: 15px;
+            width: 100%;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--primary-black);
+            color: var(--primary-black);
+        }
+
+        .btn-sm {
+            padding: 8px 15px;
+            font-size: 0.8rem;
+            width: auto;
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-excel {
+            background-color: #217346;
+            color: white;
+        }
+
+        /* KPI DASHBOARD */
+        .progress-container {
+            height: 25px;
+            background: #eee;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: var(--primary-yellow);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: black;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .kpi-box {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #eee;
+        }
+
+        .kpi-value {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--primary-black);
+            margin: 5px 0;
+        }
+
+        .kpi-label {
+            font-size: 0.75rem;
+            color: var(--text-grey);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* CALENDAR STYLES */
+        .calendar-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 4px;
+        }
+
+        .day-header {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #888;
+            font-weight: bold;
+            padding-bottom: 5px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1/1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: #fff;
+            border: 1px solid #eee;
+            position: relative;
+            transition: all 0.1s;
+        }
+
+        .day-cell:active {
+            transform: scale(0.9);
+        }
+
+        .status-work {
+            background-color: #fff;
+            color: #000;
+        }
+
+        .status-off {
+            background-color: var(--primary-black);
+            color: var(--primary-yellow);
+            border-color: #000;
+        }
+
+        .status-leave {
+            background-color: #ffebeb;
+            color: var(--danger);
+            border: 1px solid var(--danger);
+        }
+
+        /* NoBill is calculated dynamically now, not stored */
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            border: 1px solid #ccc;
+        }
+
+        /* ITEM LIST IN FORM */
+        .item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            font-size: 0.9rem;
+        }
+
+        .item-meta {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .item-actions {
+            margin-left: 10px;
+        }
+
+        .btn-remove {
+            color: var(--danger);
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .badge-gp {
+            background: var(--primary-yellow);
+            color: black;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .edit-row {
+            cursor: pointer;
+        }
+
+        .edit-row:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* BOTTOM NAV */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background: var(--primary-black);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            padding-bottom: max(12px, env(safe-area-inset-bottom));
+            z-index: 200;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-item {
+            color: #666;
+            text-align: center;
+            font-size: 0.7rem;
+            cursor: pointer;
+            flex: 1;
+            transition: 0.2s;
+        }
+
+        .nav-item i {
+            display: block;
+            font-size: 1.4rem;
+            margin-bottom: 4px;
+        }
+
+        .nav-item.active {
+            color: var(--primary-yellow);
+            transform: translateY(-2px);
+        }
+
+        /* TABS */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.2s;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(5px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header id="headerTitle">DASHBOARD</header>
+
+    <div class="container">
+
+        <!-- ================= TAB 1: DASHBOARD ================= -->
+        <div id="tab-dashboard" class="tab-content active">
+            <!-- Target Card -->
+            <div class="card">
+                <h3><i class="fas fa-trophy"></i> Monthly Target</h3>
+                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                    <div style="font-size:0.9rem; color:#666;">เป้าหมายเดือนนี้</div>
+                    <div style="font-size:1.2rem; font-weight:bold;" id="dashTarget">0</div>
+                </div>
+
+                <div class="progress-container">
+                    <div id="progressBar" class="progress-bar" style="width: 0%;">0%</div>
+                </div>
+
+                <div style="display:flex; justify-content:space-between; margin-top:5px;">
+                    <div>
+                        <div style="font-size:0.8rem; color:#666;">ยอดขายสะสม (MTD)</div>
+                        <div style="font-size:1.5rem; font-weight:800;" id="dashSaleMTD">0</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.8rem; color:#666;">ขาดอีก</div>
+                        <div style="font-size:1.1rem; font-weight:bold; color:var(--danger);" id="dashRemain">0</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Grid -->
+            <div class="kpi-grid">
+                <div class="kpi-box">
+                    <div class="kpi-label">ยอดขายวันนี้</div>
+                    <div class="kpi-value" id="dashToday">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">No Bill (วัน)</div>
+                    <div class="kpi-value" style="color:var(--danger)" id="dashNoBill">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">จำนวนบิล (Trx)</div>
+                    <div class="kpi-value" id="dashTrans">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">เฉลี่ยต่อบิล (Ticket)</div>
+                    <div class="kpi-value" id="dashTicket">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">ชิ้นต่อบิล (UPT)</div>
+                    <div class="kpi-value" id="dashUPT">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">สินค้า High GP</div>
+                    <div class="kpi-value" id="dashHighGP">0</div>
+                </div>
+            </div>
+
+            <!-- Recent Bills -->
+            <div class="card" style="margin-top: 15px;">
+                <h3><i class="fas fa-receipt"></i> รายการบิลล่าสุด</h3>
+                <p style="font-size:0.8rem; color:#666; margin-top:-10px;">* แตะที่รายการเพื่อแก้ไข</p>
+                <table id="latestBillsTable">
+                    <thead>
+                        <tr>
+                            <th>วันที่/บิล</th>
+                            <th style="text-align:right">ยอดรวม</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ================= TAB 2: INPUT ================= -->
+        <div id="tab-input" class="tab-content">
+            <div class="card">
+                <h3 id="inputTitle"><i class="fas fa-plus-circle"></i> บันทึกบิลใหม่</h3>
+
+                <!-- HEADER FORM -->
+                <div class="form-group">
+                    <label>วันที่ (Date)</label>
+                    <input type="date" id="inpDate" required>
+                </div>
+                <div class="form-group">
+                    <label>เลขที่เอกสาร (Bill No)</label>
+                    <input type="text" id="inpBill" placeholder="เช่น INV-XXXX" required>
+                </div>
+
+                <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
+
+                <!-- ADD ITEM FORM -->
+                <div style="background:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee;">
+                    <label style="margin-bottom:10px;">เพิ่มสินค้าในบิล</label>
+                    <div class="form-group">
+                        <select id="inpCat">
+                            <option value="" disabled selected>-- เลือกหมวดหมู่ --</option>
+                            <!-- JS Will Populate -->
+                        </select>
+                    </div>
+                    <div class="kpi-grid">
+                        <div class="form-group" style="margin-bottom:0;">
+                            <input type="number" id="inpPrice" placeholder="ราคา (บาท)" step="0.01">
+                        </div>
+                        <div class="form-group" style="margin-bottom:0;">
+                            <input type="number" id="inpQty" placeholder="จำนวน (ชิ้น)">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-top:10px; margin-bottom:10px;">
+                        <label class="checkbox-wrapper">
+                            <input type="checkbox" id="inpHighGP">
+                            <span>รายการนี้เป็น High GP</span>
+                        </label>
+                    </div>
+                    <button type="button" onclick="addToCart()" class="btn btn-outline btn-sm" style="width:100%;">
+                        <i class="fas fa-plus"></i> เพิ่มรายการ
+                    </button>
+                </div>
+
+                <!-- CART LIST -->
+                <div style="margin-top:20px;">
+                    <label>รายการสินค้า (<span id="cartCount">0</span>)</label>
+                    <ul id="cartList" class="item-list">
+                        <!-- Items go here -->
+                        <li style="padding:15px; text-align:center; color:#999; font-size:0.9rem;">ยังไม่มีสินค้าในบิล
+                        </li>
+                    </ul>
+                    <div style="text-align:right; font-weight:bold; margin-top:10px; font-size:1.1rem;">
+                        ยอดรวม: <span id="cartTotal">0.00</span> บาท
+                    </div>
+                </div>
+
+                <div style="margin-top:20px; display:flex; gap:10px;">
+                    <button onclick="cancelEdit()" id="btnCancel" class="btn btn-outline"
+                        style="display:none; background:#fff;">ยกเลิก</button>
+                    <button onclick="saveBill()" class="btn"><i class="fas fa-save"></i> บันทึกบิล</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================= TAB 3: CALENDAR ================= -->
+        <div id="tab-calendar" class="tab-content">
+            <div class="card">
+                <h3><i class="fas fa-calendar-alt"></i> ตารางทำงาน</h3>
+
+                <!-- Controls -->
+                <div class="calendar-controls">
+                    <button class="btn btn-outline" style="width:auto; padding:5px 15px;" onclick="changeMonth(-1)">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <span id="currentMonthLabel" style="font-size:1.1rem;">Month Year</span>
+                    <button class="btn btn-outline" style="width:auto; padding:5px 15px;" onclick="changeMonth(1)">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- Legend -->
+                <div class="legend">
+                    <div class="legend-item"><span class="dot"
+                            style="background:#fff; border:1px solid #ddd;"></span>ปกติ</div>
+                    <div class="legend-item"><span class="dot" style="background:var(--primary-black)"></span>หยุด</div>
+                    <div class="legend-item"><span class="dot" style="background:#ffebeb; border-color:red"></span>ลา
+                    </div>
+                    <!-- Removed NoBill legend as it is calculated -->
+                </div>
+
+                <!-- Header -->
+                <div class="calendar-grid" style="margin-bottom:5px;">
+                    <div class="day-header">อา</div>
+                    <div class="day-header">จ</div>
+                    <div class="day-header">อ</div>
+                    <div class="day-header">พ</div>
+                    <div class="day-header">พฤ</div>
+                    <div class="day-header">ศ</div>
+                    <div class="day-header">ส</div>
+                </div>
+
+                <!-- Body -->
+                <div id="calendarContainer" class="calendar-grid">
+                    <!-- Javascript generates this -->
+                </div>
+
+                <p style="text-align:center; font-size:0.8rem; color:#888; margin-top:15px;">
+                    * แตะที่วันที่ เพื่อเปลี่ยนสถานะ (ทำงาน > หยุด > ลา)
+                </p>
+            </div>
+        </div>
+
+        <!-- ================= TAB 4: SETTINGS ================= -->
+        <div id="tab-settings" class="tab-content">
+            <div class="card">
+                <h3><i class="fas fa-bullseye"></i> เป้าหมาย (Target)</h3>
+                <div class="form-group">
+                    <label>Target รายเดือน (บาท)</label>
+                    <input type="number" id="setTargetMonth" placeholder="ระบุยอดเป้า">
+                </div>
+                <button onclick="saveSettings()" class="btn btn-outline">บันทึกเป้าหมาย</button>
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-list"></i> หมวดหมู่สินค้า (Master)</h3>
+                <p style="font-size:0.8rem; color:#666;">พิมพ์ 1 บรรทัด ต่อ 1 หมวดหมู่</p>
+                <textarea id="setCats" rows="6"
+                    style="width:100%; border:1px solid #ddd; border-radius:8px; padding:10px;">Index Winner
+HDI
+Kitchen
+Sofa
+Bedroom
+Dining
+Mattress
+Home Decor</textarea>
+                <button onclick="saveCategories()" class="btn btn-outline"
+                    style="margin-top:10px;">อัพเดทหมวดหมู่</button>
+            </div>
+
+            <div class="card">
+                <h3><i class="fas fa-database"></i> จัดการข้อมูล</h3>
+                <div style="display:grid; gap:10px;">
+                    <button onclick="exportToExcel()" class="btn btn-excel">
+                        <i class="fas fa-file-excel"></i> Export Excel
+                    </button>
+                    <button onclick="clearAllData()" class="btn btn-danger">
+                        <i class="fas fa-trash-alt"></i> ล้างข้อมูลทั้งหมด
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="switchTab('dashboard')">
+            <i class="fas fa-chart-pie"></i> KPI
+        </div>
+        <div class="nav-item" onclick="switchTab('input')">
+            <i class="fas fa-plus-square"></i> Sales
+        </div>
+        <div class="nav-item" onclick="switchTab('calendar')">
+            <i class="fas fa-calendar-day"></i> Work
+        </div>
+        <div class="nav-item" onclick="switchTab('settings')">
+            <i class="fas fa-cog"></i> Setup
+        </div>
+    </nav>
+
+    <!-- SCRIPT -->
+    <script>
+        // --- 1. DATABASE SETUP (Dexie) ---
+        const db = new Dexie("SalesTrackerDB");
+        // Update schema to include transactionId for grouping
+        db.version(2).stores({
+            sales: "++id, transactionId, date, billNo, category",
+            schedule: "date",
+            settings: "key"
+        });
+
+        // --- 2. GLOBAL VARS ---
+        const todayStr = new Date().toISOString().split('T')[0];
+        let currentCalDate = new Date();
+
+        // Cart for Input Form
+        let cart = [];
+        let editingTransactionId = null; // If null, creating new. If set, editing.
+
+        // --- 3. INIT ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            document.getElementById('inpDate').value = todayStr;
+            await loadSettings();
+            await loadCategories();
+            updateDashboard();
+        });
+
+        // --- 4. NAVIGATION ---
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+
+            const map = { 'dashboard': 0, 'input': 1, 'calendar': 2, 'settings': 3 };
+            document.querySelectorAll('.nav-item')[map[tabName]].classList.add('active');
+
+            const titles = { 'dashboard': 'DASHBOARD', 'input': 'SALES ENTRY', 'calendar': 'SCHEDULE', 'settings': 'SETTINGS' };
+            document.getElementById('headerTitle').innerText = titles[tabName];
+
+            if (tabName === 'dashboard') updateDashboard();
+            if (tabName === 'calendar') renderCalendar();
+
+            // If switching away from input while editing, maybe warn? For now, we keep state.
+            if (tabName === 'input' && !editingTransactionId) {
+                // Clear form if new entry
+                // document.getElementById('inpDate').value = todayStr; 
+            }
+        }
+
+        // --- 5. LOGIC: CART & SALES ---
+
+        function addToCart() {
+            const cat = document.getElementById('inpCat').value;
+            const price = parseFloat(document.getElementById('inpPrice').value);
+            const qty = parseInt(document.getElementById('inpQty').value);
+            const isHighGP = document.getElementById('inpHighGP').checked;
+
+            if (!cat) return alert('กรุณาเลือกหมวดหมู่');
+            if (isNaN(price)) return alert('กรุณาระบุราคา');
+            if (isNaN(qty) || qty < 1) return alert('กรุณาระบุจำนวน');
+
+            cart.push({ category: cat, price, qty, isHighGP });
+            renderCart();
+
+            // Reset Item fields
+            document.getElementById('inpCat').value = "";
+            document.getElementById('inpPrice').value = "";
+            document.getElementById('inpQty').value = "";
+            document.getElementById('inpHighGP').checked = false;
+        }
+
+        function removeFromCart(index) {
+            cart.splice(index, 1);
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cartList');
+            list.innerHTML = '';
+            let total = 0;
+
+            if (cart.length === 0) {
+                list.innerHTML = '<li style="padding:15px; text-align:center; color:#999; font-size:0.9rem;">ยังไม่มีสินค้าในบิล</li>';
+            } else {
+                cart.forEach((item, idx) => {
+                    total += item.price;
+                    const li = document.createElement('li');
+                    li.className = 'item-row';
+                    li.innerHTML = `
+                        <div class="item-info">
+                            <div>${item.category} ${item.isHighGP ? '<span class="badge-gp">GP</span>' : ''}</div>
+                            <div class="item-meta">${item.qty} ชิ้น x ${item.price.toLocaleString()} บาท</div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn-remove" onclick="removeFromCart(${idx})"><i class="fas fa-times-circle"></i></button>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                });
+            }
+
+            document.getElementById('cartTotal').innerText = total.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            document.getElementById('cartCount').innerText = cart.length;
+        }
+
+        async function saveBill() {
+            const date = document.getElementById('inpDate').value;
+            const billNo = document.getElementById('inpBill').value.trim();
+
+            if (!date || !billNo) return alert('กรุณาระบุวันที่และเลขที่บิล');
+            if (cart.length === 0) return alert('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ');
+
+            // Generate Transaction ID (Grouping Key)
+            const transactionId = editingTransactionId || Date.now().toString();
+
+            // Prepare Data
+            const records = cart.map(item => ({
+                transactionId: transactionId,
+                date: date,
+                billNo: billNo,
+                category: item.category,
+                price: item.price,
+                qty: item.qty,
+                isHighGP: item.isHighGP,
+                timestamp: new Date()
+            }));
+
+            // DB Operations
+            try {
+                if (editingTransactionId) {
+                    // Delete old records for this transaction
+                    await db.sales.where('transactionId').equals(editingTransactionId).delete();
+                }
+
+                await db.sales.bulkAdd(records);
+
+                alert('บันทึกบิลเรียบร้อย');
+
+                // Reset Form
+                resetForm();
+                switchTab('dashboard');
+
+            } catch (e) {
+                console.error(e);
+                alert('เกิดข้อผิดพลาดในการบันทึก');
+            }
+        }
+
+        function resetForm() {
+            cart = [];
+            editingTransactionId = null;
+            document.getElementById('inpBill').value = "";
+            document.getElementById('btnCancel').style.display = 'none';
+            document.getElementById('inputTitle').innerHTML = '<i class="fas fa-plus-circle"></i> บันทึกบิลใหม่';
+            renderCart();
+            // Keep date as is or reset to today? Keep current selection usually better.
+        }
+
+        function cancelEdit() {
+            if (confirm('ยกเลิกการแก้ไข?')) {
+                resetForm();
+                switchTab('dashboard');
+            }
+        }
+
+        async function loadBillForEdit(txId) {
+            const records = await db.sales.where('transactionId').equals(txId).toArray();
+            if (records.length === 0) return;
+
+            // Load header from first record
+            const first = records[0];
+            document.getElementById('inpDate').value = first.date;
+            document.getElementById('inpBill').value = first.billNo;
+
+            // Load Items
+            cart = records.map(r => ({
+                category: r.category,
+                price: r.price,
+                qty: r.qty,
+                isHighGP: r.isHighGP
+            }));
+
+            editingTransactionId = txId;
+            renderCart();
+
+            // UI Mode
+            document.getElementById('inputTitle').innerHTML = '<i class="fas fa-edit"></i> แก้ไขบิล ' + first.billNo;
+            document.getElementById('btnCancel').style.display = 'inline-block';
+
+            switchTab('input');
+        }
+
+        // --- 6. LOGIC: DASHBOARD ---
+        async function updateDashboard() {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = now.getMonth();
+            const startOfMonth = new Date(y, m, 1).toISOString().split('T')[0];
+            const endOfMonth = new Date(y, m + 1, 0).toISOString().split('T')[0];
+            const today = now.toISOString().split('T')[0];
+
+            // Fetch Sales
+            const sales = await db.sales.where('date').between(startOfMonth, endOfMonth, true, true).toArray();
+
+            // Calculate Sales Metrics
+            let totalSale = 0, totalQty = 0, todaySale = 0, highGPCnt = 0;
+            let uniqueTx = new Set();
+            let datesWithSales = new Set();
+
+            sales.forEach(s => {
+                totalSale += s.price;
+                totalQty += s.qty;
+                uniqueTx.add(s.transactionId || s.id); // Fallback for old data
+                datesWithSales.add(s.date);
+
+                if (s.date === today) todaySale += s.price;
+                if (s.isHighGP) highGPCnt++; // Count items, not bills for High GP
+            });
+
+            // Calculate No Bill Days
+            // Logic: Days that are "Work" in Calendar but NOT in datesWithSales
+            let noBillCount = 0;
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+            const schedList = await db.schedule.toArray();
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
+
+                // Check if today or past (don't count future days)
+                if (dateKey > today) continue;
+
+                // Get Status (Default is Work)
+                const sched = schedList.find(s => s.date === dateKey);
+                const status = sched ? sched.type : 'Work';
+
+                if (status === 'Work' && !datesWithSales.has(dateKey)) {
+                    noBillCount++;
+                }
+            }
+
+            const targetData = await db.settings.get('monthly_target');
+            const target = targetData ? parseFloat(targetData.value) : 0;
+            const transCount = uniqueTx.size;
+            const ticketSize = transCount > 0 ? (totalSale / transCount) : 0;
+            const upt = transCount > 0 ? (totalQty / transCount) : 0;
+            const percent = target > 0 ? (totalSale / target * 100) : 0;
+            const remain = Math.max(0, target - totalSale);
+
+            // Render KPI
+            document.getElementById('dashTarget').innerText = target.toLocaleString();
+            document.getElementById('dashSaleMTD').innerText = totalSale.toLocaleString();
+            document.getElementById('dashRemain').innerText = remain.toLocaleString();
+            document.getElementById('progressBar').style.width = Math.min(percent, 100) + "%";
+            document.getElementById('progressBar').innerText = percent.toFixed(1) + "%";
+
+            document.getElementById('dashToday').innerText = todaySale.toLocaleString();
+            document.getElementById('dashTrans').innerText = transCount;
+            document.getElementById('dashTicket').innerText = ticketSize.toLocaleString(undefined, { maximumFractionDigits: 0 });
+            document.getElementById('dashUPT').innerText = upt.toFixed(2);
+            document.getElementById('dashNoBill').innerText = noBillCount;
+            document.getElementById('dashHighGP').innerText = highGPCnt;
+
+            // Render Recent List (Group by Bill)
+            renderRecentBills(sales);
+        }
+
+        function renderRecentBills(allSales) {
+            const listBody = document.querySelector('#latestBillsTable tbody');
+            listBody.innerHTML = '';
+
+            // Group by TransactionId
+            const bills = {};
+            allSales.forEach(s => {
+                const tx = s.transactionId || ('old_' + s.id);
+                if (!bills[tx]) {
+                    bills[tx] = { date: s.date, billNo: s.billNo, total: 0, txId: s.transactionId };
+                }
+                bills[tx].total += s.price;
+            });
+
+            // Sort & Slice
+            const sortedBills = Object.values(bills).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10); // Last 10 bills
+
+            if (sortedBills.length === 0) {
+                listBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#999;">ยังไม่มีรายการขาย</td></tr>';
+            } else {
+                sortedBills.forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'edit-row';
+                    tr.onclick = () => loadBillForEdit(b.txId);
+                    tr.innerHTML = `
+                        <td>
+                            <div style="font-weight:bold;">${b.billNo}</div>
+                            <div style="font-size:0.75rem; color:#888;">${b.date}</div>
+                        </td>
+                        <td style="text-align:right; font-weight:bold;">${b.total.toLocaleString()}</td>
+                    `;
+                    listBody.appendChild(tr);
+                });
+            }
+        }
+
+        // --- 7. LOGIC: CALENDAR ---
+        async function renderCalendar() {
+            const container = document.getElementById('calendarContainer');
+            container.innerHTML = '';
+
+            const year = currentCalDate.getFullYear();
+            const month = currentCalDate.getMonth();
+
+            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+            document.getElementById('currentMonthLabel').innerText = `${thaiMonths[month]} ${year}`;
+
+            const firstDayIndex = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+
+            const allSched = await db.schedule.toArray();
+            const monthSched = allSched.filter(s => s.date.startsWith(prefix));
+
+            for (let i = 0; i < firstDayIndex; i++) container.appendChild(document.createElement('div'));
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
+                const found = monthSched.find(s => s.date === dateKey);
+                const status = found ? found.type : 'Work';
+
+                const cell = document.createElement('div');
+                cell.className = `day-cell status-${status.toLowerCase()}`;
+                cell.innerText = d;
+                cell.onclick = () => toggleDayStatus(dateKey, status);
+
+                container.appendChild(cell);
+            }
+        }
+
+        async function toggleDayStatus(dateKey, currentStatus) {
+            // Cycle: Work -> Off -> Leave -> Work (No Bill is automatic now)
+            const cycle = ['Work', 'Off', 'Leave'];
+            const nextIdx = (cycle.indexOf(currentStatus) + 1) % 3;
+            const nextStatus = cycle[nextIdx];
+
+            await db.schedule.put({ date: dateKey, type: nextStatus });
+            renderCalendar();
+        }
+
+        function changeMonth(step) {
+            currentCalDate.setMonth(currentCalDate.getMonth() + step);
+            renderCalendar();
+        }
+
+        // --- 8. SETTINGS & EXPORT ---
+        async function loadSettings() {
+            const t = await db.settings.get('monthly_target');
+            if (t) document.getElementById('setTargetMonth').value = t.value;
+        }
+        async function saveSettings() {
+            const val = document.getElementById('setTargetMonth').value;
+            await db.settings.put({ key: 'monthly_target', value: val });
+            alert('บันทึกเรียบร้อย');
+            updateDashboard();
+        }
+        async function loadCategories() {
+            let catData = await db.settings.get('product_categories');
+            let cats = catData ? catData.value : ["Index Winner", "HDI", "Kitchen", "Sofa", "Bedroom", "Dining", "Mattress", "Home Decor"];
+
+            document.getElementById('setCats').value = cats.join('\n');
+            const sel = document.getElementById('inpCat');
+            // Keep first option
+            sel.innerHTML = '<option value="" disabled selected>-- เลือกหมวดหมู่ --</option>';
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c; opt.innerText = c;
+                sel.appendChild(opt);
+            });
+        }
+        async function saveCategories() {
+            const txt = document.getElementById('setCats').value;
+            const arr = txt.split('\n').map(x => x.trim()).filter(x => x !== '');
+            await db.settings.put({ key: 'product_categories', value: arr });
+            await loadCategories();
+            alert('อัพเดทเรียบร้อย');
+        }
+
+        async function exportToExcel() {
+            const sales = await db.sales.toArray();
+            const sched = await db.schedule.toArray();
+            if (sales.length === 0) return alert('ไม่มีข้อมูล');
+
+            const wb = XLSX.utils.book_new();
+            if (sales.length > 0) {
+                const wsSales = XLSX.utils.json_to_sheet(sales);
+                XLSX.utils.book_append_sheet(wb, wsSales, "Sales_Data");
+            }
+            if (sched.length > 0) {
+                const wsSched = XLSX.utils.json_to_sheet(sched);
+                XLSX.utils.book_append_sheet(wb, wsSched, "Work_Schedule");
+            }
+            XLSX.writeFile(wb, `SalesTracker_${todayStr}.xlsx`);
+        }
+
+        async function clearAllData() {
+            if (confirm('ลบข้อมูลทั้งหมด?')) {
+                await db.sales.clear();
+                await db.schedule.clear();
+                await db.settings.clear();
+                location.reload();
+            }
+        }
+    </script>
+</body>
+
+</html>
