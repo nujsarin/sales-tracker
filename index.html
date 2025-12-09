@@ -8,6 +8,7 @@
             navigator.serviceWorker.register('sw.js');
         }
     </script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Daily Sales Tracker</title>
@@ -15,6 +16,21 @@
     <script src="https://unpkg.com/dexie/dist/dexie.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- PWA CONFIG -->
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#FFDA29">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/263/263142.png">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered!', reg.scope))
+                    .catch(err => console.log('Service Worker Failed:', err));
+            });
+        }
+    </script>
 
     <style>
         :root {
@@ -171,7 +187,45 @@
             color: white;
         }
 
+        .btn-icon {
+            padding: 8px;
+            width: auto;
+            font-size: 1rem;
+            border-radius: 6px;
+        }
+
+        /* MONTH SELECTOR */
+        .month-selector {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .month-label {
+            font-weight: 800;
+            font-size: 1.1rem;
+        }
+
         /* KPI DASHBOARD */
+        .target-input-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .target-input-group input {
+            text-align: right;
+            font-weight: bold;
+            font-size: 1.2rem;
+            border: 2px solid #eee;
+        }
+
         .progress-container {
             height: 25px;
             background: #eee;
@@ -209,10 +263,11 @@
         }
 
         .kpi-value {
-            font-size: 1.4rem;
+            font-size: 1.2rem;
             font-weight: 800;
             color: var(--primary-black);
             margin: 5px 0;
+            overflow-wrap: break-word;
         }
 
         .kpi-label {
@@ -222,7 +277,83 @@
             letter-spacing: 0.5px;
         }
 
-        /* CALENDAR STYLES */
+        /* ITEM LIST & TABLES */
+        .item-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .item-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #fff;
+            border-bottom: 1px solid #eee;
+        }
+
+        .item-row:last-child {
+            border-bottom: none;
+        }
+
+        .item-info {
+            font-size: 0.9rem;
+        }
+
+        .item-meta {
+            font-size: 0.75rem;
+            color: #666;
+        }
+
+        .btn-remove {
+            color: var(--danger);
+            background: none;
+            border: none;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            color: #666;
+            font-weight: 600;
+        }
+
+        .badge-gp {
+            background: var(--primary-yellow);
+            color: black;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: bold;
+            margin-left: 5px;
+        }
+
+        .edit-row {
+            cursor: pointer;
+        }
+
+        .edit-row:hover {
+            background-color: #f9f9f9;
+        }
+
+        /* CALENDAR */
         .calendar-controls {
             display: flex;
             justify-content: space-between;
@@ -261,10 +392,6 @@
             transition: all 0.1s;
         }
 
-        .day-cell:active {
-            transform: scale(0.9);
-        }
-
         .status-work {
             background-color: #fff;
             color: #000;
@@ -281,8 +408,6 @@
             color: var(--danger);
             border: 1px solid var(--danger);
         }
-
-        /* NoBill is calculated dynamically now, not stored */
 
         .legend {
             display: flex;
@@ -304,87 +429,6 @@
             height: 10px;
             border-radius: 50%;
             border: 1px solid #ccc;
-        }
-
-        /* ITEM LIST IN FORM */
-        .item-list {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            border: 1px solid #eee;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-
-        .item-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 10px;
-            background: #fff;
-            border-bottom: 1px solid #eee;
-        }
-
-        .item-row:last-child {
-            border-bottom: none;
-        }
-
-        .item-info {
-            font-size: 0.9rem;
-        }
-
-        .item-meta {
-            font-size: 0.75rem;
-            color: #666;
-        }
-
-        .item-actions {
-            margin-left: 10px;
-        }
-
-        .btn-remove {
-            color: var(--danger);
-            background: none;
-            border: none;
-            font-size: 1.1rem;
-            cursor: pointer;
-        }
-
-        /* TABLE */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-        }
-
-        th,
-        td {
-            text-align: left;
-            padding: 10px;
-            border-bottom: 1px solid #eee;
-        }
-
-        th {
-            color: #666;
-            font-weight: 600;
-        }
-
-        .badge-gp {
-            background: var(--primary-yellow);
-            color: black;
-            padding: 2px 5px;
-            border-radius: 4px;
-            font-size: 0.65rem;
-            font-weight: bold;
-            margin-left: 5px;
-        }
-
-        .edit-row {
-            cursor: pointer;
-        }
-
-        .edit-row:hover {
-            background-color: #f9f9f9;
         }
 
         /* BOTTOM NAV */
@@ -454,36 +498,50 @@
 
         <!-- ================= TAB 1: DASHBOARD ================= -->
         <div id="tab-dashboard" class="tab-content active">
-            <!-- Target Card -->
+
+            <!-- Month Selector -->
+            <div class="month-selector">
+                <button class="btn btn-outline btn-icon" onclick="changeDashMonth(-1)">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <div class="month-label" id="dashMonthLabel">Month Year</div>
+                <button class="btn btn-outline btn-icon" onclick="changeDashMonth(1)">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Target & Performance Card -->
             <div class="card">
-                <h3><i class="fas fa-trophy"></i> Monthly Target</h3>
-                <div style="display:flex; justify-content:space-between; align-items:flex-end;">
-                    <div style="font-size:0.9rem; color:#666;">เป้าหมายเดือนนี้</div>
-                    <div style="font-size:1.2rem; font-weight:bold;" id="dashTarget">0</div>
+                <h3><i class="fas fa-bullseye"></i> Target & Performance</h3>
+
+                <div style="font-size:0.8rem; color:#666; margin-bottom:5px;">เป้าหมายเดือนนี้ (Target)</div>
+                <div class="target-input-group">
+                    <input type="number" id="dashTargetInput" placeholder="ใส่ยอด Target" onblur="saveTarget()">
+                    <button class="btn btn-outline btn-icon" onclick="saveTarget()"
+                        style="background:var(--primary-black); color:var(--primary-yellow); border:none;">
+                        <i class="fas fa-save"></i>
+                    </button>
                 </div>
 
                 <div class="progress-container">
                     <div id="progressBar" class="progress-bar" style="width: 0%;">0%</div>
                 </div>
 
-                <div style="display:flex; justify-content:space-between; margin-top:5px;">
+                <div style="display:flex; justify-content:space-between; margin-top:10px;">
                     <div>
                         <div style="font-size:0.8rem; color:#666;">ยอดขายสะสม (MTD)</div>
-                        <div style="font-size:1.5rem; font-weight:800;" id="dashSaleMTD">0</div>
+                        <div style="font-size:1.3rem; font-weight:800;" id="dashSaleMTD">0.00</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="font-size:0.8rem; color:#666;">ขาดอีก</div>
-                        <div style="font-size:1.1rem; font-weight:bold; color:var(--danger);" id="dashRemain">0</div>
+                        <div style="font-size:0.8rem; color:#666;">ขาดอีก (Remain)</div>
+                        <div style="font-size:1.1rem; font-weight:bold; color:var(--danger);" id="dashRemain">0.00</div>
                     </div>
                 </div>
             </div>
 
             <!-- KPI Grid -->
             <div class="kpi-grid">
-                <div class="kpi-box">
-                    <div class="kpi-label">ยอดขายวันนี้</div>
-                    <div class="kpi-value" id="dashToday">0</div>
-                </div>
+                <!-- ถ้าเป็นเดือนปัจจุบันจะโชว์ Today, ถ้าเดือนอื่นจะโชว์เป็น N/A หรือยอดรวม -->
                 <div class="kpi-box">
                     <div class="kpi-label">No Bill (วัน)</div>
                     <div class="kpi-value" style="color:var(--danger)" id="dashNoBill">0</div>
@@ -493,22 +551,26 @@
                     <div class="kpi-value" id="dashTrans">0</div>
                 </div>
                 <div class="kpi-box">
-                    <div class="kpi-label">เฉลี่ยต่อบิล (Ticket)</div>
+                    <div class="kpi-label">Ticket Size</div>
                     <div class="kpi-value" id="dashTicket">0</div>
                 </div>
                 <div class="kpi-box">
-                    <div class="kpi-label">ชิ้นต่อบิล (UPT)</div>
+                    <div class="kpi-label">UPT</div>
                     <div class="kpi-value" id="dashUPT">0</div>
                 </div>
                 <div class="kpi-box">
-                    <div class="kpi-label">สินค้า High GP</div>
+                    <div class="kpi-label">Total Qty</div>
+                    <div class="kpi-value" id="dashQty">0</div>
+                </div>
+                <div class="kpi-box">
+                    <div class="kpi-label">High GP (ชิ้น)</div>
                     <div class="kpi-value" id="dashHighGP">0</div>
                 </div>
             </div>
 
             <!-- Recent Bills -->
             <div class="card" style="margin-top: 15px;">
-                <h3><i class="fas fa-receipt"></i> รายการบิลล่าสุด</h3>
+                <h3><i class="fas fa-receipt"></i> รายการบิล (เดือนที่เลือก)</h3>
                 <p style="font-size:0.8rem; color:#666; margin-top:-10px;">* แตะที่รายการเพื่อแก้ไข</p>
                 <table id="latestBillsTable">
                     <thead>
@@ -527,7 +589,6 @@
             <div class="card">
                 <h3 id="inputTitle"><i class="fas fa-plus-circle"></i> บันทึกบิลใหม่</h3>
 
-                <!-- HEADER FORM -->
                 <div class="form-group">
                     <label>วันที่ (Date)</label>
                     <input type="date" id="inpDate" required>
@@ -539,13 +600,11 @@
 
                 <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
 
-                <!-- ADD ITEM FORM -->
                 <div style="background:#f9f9f9; padding:10px; border-radius:8px; border:1px solid #eee;">
                     <label style="margin-bottom:10px;">เพิ่มสินค้าในบิล</label>
                     <div class="form-group">
                         <select id="inpCat">
                             <option value="" disabled selected>-- เลือกหมวดหมู่ --</option>
-                            <!-- JS Will Populate -->
                         </select>
                     </div>
                     <div class="kpi-grid">
@@ -567,11 +626,9 @@
                     </button>
                 </div>
 
-                <!-- CART LIST -->
                 <div style="margin-top:20px;">
                     <label>รายการสินค้า (<span id="cartCount">0</span>)</label>
                     <ul id="cartList" class="item-list">
-                        <!-- Items go here -->
                         <li style="padding:15px; text-align:center; color:#999; font-size:0.9rem;">ยังไม่มีสินค้าในบิล
                         </li>
                     </ul>
@@ -593,28 +650,24 @@
             <div class="card">
                 <h3><i class="fas fa-calendar-alt"></i> ตารางทำงาน</h3>
 
-                <!-- Controls -->
                 <div class="calendar-controls">
-                    <button class="btn btn-outline" style="width:auto; padding:5px 15px;" onclick="changeMonth(-1)">
+                    <button class="btn btn-outline" style="width:auto; padding:5px 15px;" onclick="changeCalMonth(-1)">
                         <i class="fas fa-chevron-left"></i>
                     </button>
                     <span id="currentMonthLabel" style="font-size:1.1rem;">Month Year</span>
-                    <button class="btn btn-outline" style="width:auto; padding:5px 15px;" onclick="changeMonth(1)">
+                    <button class="btn btn-outline" style="width:auto; padding:5px 15px;" onclick="changeCalMonth(1)">
                         <i class="fas fa-chevron-right"></i>
                     </button>
                 </div>
 
-                <!-- Legend -->
                 <div class="legend">
                     <div class="legend-item"><span class="dot"
                             style="background:#fff; border:1px solid #ddd;"></span>ปกติ</div>
                     <div class="legend-item"><span class="dot" style="background:var(--primary-black)"></span>หยุด</div>
                     <div class="legend-item"><span class="dot" style="background:#ffebeb; border-color:red"></span>ลา
                     </div>
-                    <!-- Removed NoBill legend as it is calculated -->
                 </div>
 
-                <!-- Header -->
                 <div class="calendar-grid" style="margin-bottom:5px;">
                     <div class="day-header">อา</div>
                     <div class="day-header">จ</div>
@@ -625,7 +678,6 @@
                     <div class="day-header">ส</div>
                 </div>
 
-                <!-- Body -->
                 <div id="calendarContainer" class="calendar-grid">
                     <!-- Javascript generates this -->
                 </div>
@@ -638,14 +690,7 @@
 
         <!-- ================= TAB 4: SETTINGS ================= -->
         <div id="tab-settings" class="tab-content">
-            <div class="card">
-                <h3><i class="fas fa-bullseye"></i> เป้าหมาย (Target)</h3>
-                <div class="form-group">
-                    <label>Target รายเดือน (บาท)</label>
-                    <input type="number" id="setTargetMonth" placeholder="ระบุยอดเป้า">
-                </div>
-                <button onclick="saveSettings()" class="btn btn-outline">บันทึกเป้าหมาย</button>
-            </div>
+            <!-- TARGET MOVED TO DASHBOARD -->
 
             <div class="card">
                 <h3><i class="fas fa-list"></i> หมวดหมู่สินค้า (Master)</h3>
@@ -695,9 +740,8 @@ Home Decor</textarea>
 
     <!-- SCRIPT -->
     <script>
-        // --- 1. DATABASE SETUP (Dexie) ---
+        // --- 1. DATABASE SETUP ---
         const db = new Dexie("SalesTrackerDB");
-        // Update schema to include transactionId for grouping
         db.version(2).stores({
             sales: "++id, transactionId, date, billNo, category",
             schedule: "date",
@@ -706,21 +750,25 @@ Home Decor</textarea>
 
         // --- 2. GLOBAL VARS ---
         const todayStr = new Date().toISOString().split('T')[0];
-        let currentCalDate = new Date();
+        let currentDashDate = new Date(); // สำหรับ Dashboard View
+        let currentCalDate = new Date();  // สำหรับ Calendar View
 
         // Cart for Input Form
         let cart = [];
-        let editingTransactionId = null; // If null, creating new. If set, editing.
+        let editingTransactionId = null;
 
         // --- 3. INIT ---
         document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('inpDate').value = todayStr;
-            await loadSettings();
             await loadCategories();
-            updateDashboard();
+            updateDashboard(); // Init with current month
         });
 
-        // --- 4. NAVIGATION ---
+        // --- 4. FORMATTERS ---
+        const moneyFmt = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
+
+        // --- 5. NAVIGATION ---
         function switchTab(tabName) {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -734,16 +782,140 @@ Home Decor</textarea>
 
             if (tabName === 'dashboard') updateDashboard();
             if (tabName === 'calendar') renderCalendar();
+        }
 
-            // If switching away from input while editing, maybe warn? For now, we keep state.
-            if (tabName === 'input' && !editingTransactionId) {
-                // Clear form if new entry
-                // document.getElementById('inpDate').value = todayStr; 
+        // --- 6. DASHBOARD LOGIC (KPI & TARGET) ---
+
+        function changeDashMonth(step) {
+            currentDashDate.setMonth(currentDashDate.getMonth() + step);
+            updateDashboard();
+        }
+
+        async function saveTarget() {
+            const y = currentDashDate.getFullYear();
+            const m = currentDashDate.getMonth() + 1;
+            const targetKey = `target_${y}-${String(m).padStart(2, '0')}`;
+            const val = document.getElementById('dashTargetInput').value;
+
+            if (val) {
+                await db.settings.put({ key: targetKey, value: val });
+                // alert('บันทึกเป้าเดือนนี้แล้ว'); // Optional, removed for smoother UX
+                updateDashboard();
             }
         }
 
-        // --- 5. LOGIC: CART & SALES ---
+        async function updateDashboard() {
+            const y = currentDashDate.getFullYear();
+            const m = currentDashDate.getMonth();
 
+            // UI Label
+            document.getElementById('dashMonthLabel').innerText = `${thaiMonths[m]} ${y}`;
+
+            // Date Range
+            const startOfMonth = new Date(y, m, 1).toISOString().split('T')[0];
+            const endOfMonth = new Date(y, m + 1, 0).toISOString().split('T')[0];
+            const today = new Date().toISOString().split('T')[0];
+
+            // 1. Load Target for this specific month
+            const targetKey = `target_${y}-${String(m + 1).padStart(2, '0')}`;
+            const targetData = await db.settings.get(targetKey);
+            const target = targetData ? parseFloat(targetData.value) : 0;
+            document.getElementById('dashTargetInput').value = targetData ? targetData.value : '';
+
+            // 2. Fetch Sales for this month
+            const sales = await db.sales.where('date').between(startOfMonth, endOfMonth, true, true).toArray();
+
+            // 3. Calc Sales Metrics
+            let totalSale = 0, totalQty = 0, highGPCnt = 0;
+            let uniqueTx = new Set();
+            let datesWithSales = new Set();
+
+            sales.forEach(s => {
+                totalSale += s.price;
+                totalQty += s.qty;
+                uniqueTx.add(s.transactionId || s.id);
+                datesWithSales.add(s.date);
+                if (s.isHighGP) highGPCnt++; // Count Items
+            });
+
+            // 4. Calc No Bill (Sync with Schedule of SELECTED month)
+            let noBillCount = 0;
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
+            const schedList = await db.schedule.toArray(); // Get all schedules to filter
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
+
+                // ไม่นับวันในอนาคต (ถ้าดูเดือนปัจจุบัน) / ถ้าดูเดือนเก่า นับหมด / ถ้าดูเดือนหน้า ไม่นับ
+                if (dateKey > today) continue;
+
+                const sched = schedList.find(s => s.date === dateKey);
+                const status = sched ? sched.type : 'Work'; // Default = Work
+
+                if (status === 'Work' && !datesWithSales.has(dateKey)) {
+                    noBillCount++;
+                }
+            }
+
+            // 5. Compute KPI
+            const transCount = uniqueTx.size;
+            const ticketSize = transCount > 0 ? (totalSale / transCount) : 0;
+            const upt = transCount > 0 ? (totalQty / transCount) : 0;
+            const percent = target > 0 ? (totalSale / target * 100) : 0;
+            const remain = Math.max(0, target - totalSale);
+
+            // 6. Render
+            document.getElementById('dashSaleMTD').innerText = moneyFmt.format(totalSale);
+            document.getElementById('dashRemain').innerText = moneyFmt.format(remain);
+            document.getElementById('progressBar').style.width = Math.min(percent, 100) + "%";
+            document.getElementById('progressBar').innerText = percent.toFixed(1) + "%";
+
+            document.getElementById('dashNoBill').innerText = noBillCount;
+            document.getElementById('dashTrans').innerText = transCount;
+            document.getElementById('dashTicket').innerText = moneyFmt.format(ticketSize);
+            document.getElementById('dashUPT').innerText = upt.toFixed(2);
+            document.getElementById('dashQty').innerText = totalQty;
+            document.getElementById('dashHighGP').innerText = highGPCnt;
+
+            renderRecentBills(sales);
+        }
+
+        function renderRecentBills(allSales) {
+            const listBody = document.querySelector('#latestBillsTable tbody');
+            listBody.innerHTML = '';
+
+            const bills = {};
+            allSales.forEach(s => {
+                const tx = s.transactionId || ('old_' + s.id);
+                if (!bills[tx]) {
+                    bills[tx] = { date: s.date, billNo: s.billNo, total: 0, txId: s.transactionId };
+                }
+                bills[tx].total += s.price;
+            });
+
+            const sortedBills = Object.values(bills).sort((a, b) => b.date.localeCompare(a.date));
+
+            if (sortedBills.length === 0) {
+                listBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#999;">ไม่มีรายการขายในเดือนนี้</td></tr>';
+            } else {
+                sortedBills.forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'edit-row';
+                    tr.onclick = () => loadBillForEdit(b.txId);
+                    tr.innerHTML = `
+                        <td>
+                            <div style="font-weight:bold;">${b.billNo}</div>
+                            <div style="font-size:0.75rem; color:#888;">${b.date}</div>
+                        </td>
+                        <td style="text-align:right; font-weight:bold;">${moneyFmt.format(b.total)}</td>
+                    `;
+                    listBody.appendChild(tr);
+                });
+            }
+        }
+
+        // --- 7. CART & SALES INPUT ---
         function addToCart() {
             const cat = document.getElementById('inpCat').value;
             const price = parseFloat(document.getElementById('inpPrice').value);
@@ -757,7 +929,6 @@ Home Decor</textarea>
             cart.push({ category: cat, price, qty, isHighGP });
             renderCart();
 
-            // Reset Item fields
             document.getElementById('inpCat').value = "";
             document.getElementById('inpPrice').value = "";
             document.getElementById('inpQty').value = "";
@@ -784,7 +955,7 @@ Home Decor</textarea>
                     li.innerHTML = `
                         <div class="item-info">
                             <div>${item.category} ${item.isHighGP ? '<span class="badge-gp">GP</span>' : ''}</div>
-                            <div class="item-meta">${item.qty} ชิ้น x ${item.price.toLocaleString()} บาท</div>
+                            <div class="item-meta">${item.qty} ชิ้น x ${moneyFmt.format(item.price)}</div>
                         </div>
                         <div class="item-actions">
                             <button class="btn-remove" onclick="removeFromCart(${idx})"><i class="fas fa-times-circle"></i></button>
@@ -793,8 +964,7 @@ Home Decor</textarea>
                     list.appendChild(li);
                 });
             }
-
-            document.getElementById('cartTotal').innerText = total.toLocaleString(undefined, { minimumFractionDigits: 2 });
+            document.getElementById('cartTotal').innerText = moneyFmt.format(total);
             document.getElementById('cartCount').innerText = cart.length;
         }
 
@@ -805,10 +975,8 @@ Home Decor</textarea>
             if (!date || !billNo) return alert('กรุณาระบุวันที่และเลขที่บิล');
             if (cart.length === 0) return alert('กรุณาเพิ่มสินค้าอย่างน้อย 1 รายการ');
 
-            // Generate Transaction ID (Grouping Key)
             const transactionId = editingTransactionId || Date.now().toString();
 
-            // Prepare Data
             const records = cart.map(item => ({
                 transactionId: transactionId,
                 date: date,
@@ -820,19 +988,21 @@ Home Decor</textarea>
                 timestamp: new Date()
             }));
 
-            // DB Operations
             try {
                 if (editingTransactionId) {
-                    // Delete old records for this transaction
                     await db.sales.where('transactionId').equals(editingTransactionId).delete();
                 }
-
                 await db.sales.bulkAdd(records);
+                alert('บันทึกเรียบร้อย');
 
-                alert('บันทึกบิลเรียบร้อย');
-
-                // Reset Form
+                // If saved date is not in current view, maybe switch view?
+                // For now, simple logic: reset and go to dashboard
                 resetForm();
+
+                // Update dashboard view to match the bill date just saved (Optional but good UX)
+                const savedDate = new Date(date);
+                currentDashDate = savedDate;
+
                 switchTab('dashboard');
 
             } catch (e) {
@@ -848,7 +1018,6 @@ Home Decor</textarea>
             document.getElementById('btnCancel').style.display = 'none';
             document.getElementById('inputTitle').innerHTML = '<i class="fas fa-plus-circle"></i> บันทึกบิลใหม่';
             renderCart();
-            // Keep date as is or reset to today? Keep current selection usually better.
         }
 
         function cancelEdit() {
@@ -862,12 +1031,10 @@ Home Decor</textarea>
             const records = await db.sales.where('transactionId').equals(txId).toArray();
             if (records.length === 0) return;
 
-            // Load header from first record
             const first = records[0];
             document.getElementById('inpDate').value = first.date;
             document.getElementById('inpBill').value = first.billNo;
 
-            // Load Items
             cart = records.map(r => ({
                 category: r.category,
                 price: r.price,
@@ -878,138 +1045,29 @@ Home Decor</textarea>
             editingTransactionId = txId;
             renderCart();
 
-            // UI Mode
             document.getElementById('inputTitle').innerHTML = '<i class="fas fa-edit"></i> แก้ไขบิล ' + first.billNo;
             document.getElementById('btnCancel').style.display = 'inline-block';
 
             switchTab('input');
         }
 
-        // --- 6. LOGIC: DASHBOARD ---
-        async function updateDashboard() {
-            const now = new Date();
-            const y = now.getFullYear();
-            const m = now.getMonth();
-            const startOfMonth = new Date(y, m, 1).toISOString().split('T')[0];
-            const endOfMonth = new Date(y, m + 1, 0).toISOString().split('T')[0];
-            const today = now.toISOString().split('T')[0];
-
-            // Fetch Sales
-            const sales = await db.sales.where('date').between(startOfMonth, endOfMonth, true, true).toArray();
-
-            // Calculate Sales Metrics
-            let totalSale = 0, totalQty = 0, todaySale = 0, highGPCnt = 0;
-            let uniqueTx = new Set();
-            let datesWithSales = new Set();
-
-            sales.forEach(s => {
-                totalSale += s.price;
-                totalQty += s.qty;
-                uniqueTx.add(s.transactionId || s.id); // Fallback for old data
-                datesWithSales.add(s.date);
-
-                if (s.date === today) todaySale += s.price;
-                if (s.isHighGP) highGPCnt++; // Count items, not bills for High GP
-            });
-
-            // Calculate No Bill Days
-            // Logic: Days that are "Work" in Calendar but NOT in datesWithSales
-            let noBillCount = 0;
-            const daysInMonth = new Date(y, m + 1, 0).getDate();
-            const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
-            const schedList = await db.schedule.toArray();
-
-            for (let d = 1; d <= daysInMonth; d++) {
-                const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
-
-                // Check if today or past (don't count future days)
-                if (dateKey > today) continue;
-
-                // Get Status (Default is Work)
-                const sched = schedList.find(s => s.date === dateKey);
-                const status = sched ? sched.type : 'Work';
-
-                if (status === 'Work' && !datesWithSales.has(dateKey)) {
-                    noBillCount++;
-                }
-            }
-
-            const targetData = await db.settings.get('monthly_target');
-            const target = targetData ? parseFloat(targetData.value) : 0;
-            const transCount = uniqueTx.size;
-            const ticketSize = transCount > 0 ? (totalSale / transCount) : 0;
-            const upt = transCount > 0 ? (totalQty / transCount) : 0;
-            const percent = target > 0 ? (totalSale / target * 100) : 0;
-            const remain = Math.max(0, target - totalSale);
-
-            // Render KPI
-            document.getElementById('dashTarget').innerText = target.toLocaleString();
-            document.getElementById('dashSaleMTD').innerText = totalSale.toLocaleString();
-            document.getElementById('dashRemain').innerText = remain.toLocaleString();
-            document.getElementById('progressBar').style.width = Math.min(percent, 100) + "%";
-            document.getElementById('progressBar').innerText = percent.toFixed(1) + "%";
-
-            document.getElementById('dashToday').innerText = todaySale.toLocaleString();
-            document.getElementById('dashTrans').innerText = transCount;
-            document.getElementById('dashTicket').innerText = ticketSize.toLocaleString(undefined, { maximumFractionDigits: 0 });
-            document.getElementById('dashUPT').innerText = upt.toFixed(2);
-            document.getElementById('dashNoBill').innerText = noBillCount;
-            document.getElementById('dashHighGP').innerText = highGPCnt;
-
-            // Render Recent List (Group by Bill)
-            renderRecentBills(sales);
+        // --- 8. CALENDAR LOGIC ---
+        function changeCalMonth(step) {
+            currentCalDate.setMonth(currentCalDate.getMonth() + step);
+            renderCalendar();
         }
 
-        function renderRecentBills(allSales) {
-            const listBody = document.querySelector('#latestBillsTable tbody');
-            listBody.innerHTML = '';
-
-            // Group by TransactionId
-            const bills = {};
-            allSales.forEach(s => {
-                const tx = s.transactionId || ('old_' + s.id);
-                if (!bills[tx]) {
-                    bills[tx] = { date: s.date, billNo: s.billNo, total: 0, txId: s.transactionId };
-                }
-                bills[tx].total += s.price;
-            });
-
-            // Sort & Slice
-            const sortedBills = Object.values(bills).sort((a, b) => b.date.localeCompare(a.date)).slice(0, 10); // Last 10 bills
-
-            if (sortedBills.length === 0) {
-                listBody.innerHTML = '<tr><td colspan="2" style="text-align:center; color:#999;">ยังไม่มีรายการขาย</td></tr>';
-            } else {
-                sortedBills.forEach(b => {
-                    const tr = document.createElement('tr');
-                    tr.className = 'edit-row';
-                    tr.onclick = () => loadBillForEdit(b.txId);
-                    tr.innerHTML = `
-                        <td>
-                            <div style="font-weight:bold;">${b.billNo}</div>
-                            <div style="font-size:0.75rem; color:#888;">${b.date}</div>
-                        </td>
-                        <td style="text-align:right; font-weight:bold;">${b.total.toLocaleString()}</td>
-                    `;
-                    listBody.appendChild(tr);
-                });
-            }
-        }
-
-        // --- 7. LOGIC: CALENDAR ---
         async function renderCalendar() {
             const container = document.getElementById('calendarContainer');
             container.innerHTML = '';
 
-            const year = currentCalDate.getFullYear();
-            const month = currentCalDate.getMonth();
+            const y = currentCalDate.getFullYear();
+            const m = currentCalDate.getMonth();
+            document.getElementById('currentMonthLabel').innerText = `${thaiMonths[m]} ${y}`;
 
-            const thaiMonths = ["มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"];
-            document.getElementById('currentMonthLabel').innerText = `${thaiMonths[month]} ${year}`;
-
-            const firstDayIndex = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
+            const firstDayIndex = new Date(y, m, 1).getDay();
+            const daysInMonth = new Date(y, m + 1, 0).getDate();
+            const prefix = `${y}-${String(m + 1).padStart(2, '0')}`;
 
             const allSched = await db.schedule.toArray();
             const monthSched = allSched.filter(s => s.date.startsWith(prefix));
@@ -1025,13 +1083,11 @@ Home Decor</textarea>
                 cell.className = `day-cell status-${status.toLowerCase()}`;
                 cell.innerText = d;
                 cell.onclick = () => toggleDayStatus(dateKey, status);
-
                 container.appendChild(cell);
             }
         }
 
         async function toggleDayStatus(dateKey, currentStatus) {
-            // Cycle: Work -> Off -> Leave -> Work (No Bill is automatic now)
             const cycle = ['Work', 'Off', 'Leave'];
             const nextIdx = (cycle.indexOf(currentStatus) + 1) % 3;
             const nextStatus = cycle[nextIdx];
@@ -1040,29 +1096,13 @@ Home Decor</textarea>
             renderCalendar();
         }
 
-        function changeMonth(step) {
-            currentCalDate.setMonth(currentCalDate.getMonth() + step);
-            renderCalendar();
-        }
-
-        // --- 8. SETTINGS & EXPORT ---
-        async function loadSettings() {
-            const t = await db.settings.get('monthly_target');
-            if (t) document.getElementById('setTargetMonth').value = t.value;
-        }
-        async function saveSettings() {
-            const val = document.getElementById('setTargetMonth').value;
-            await db.settings.put({ key: 'monthly_target', value: val });
-            alert('บันทึกเรียบร้อย');
-            updateDashboard();
-        }
+        // --- 9. SETTINGS & EXPORT ---
         async function loadCategories() {
             let catData = await db.settings.get('product_categories');
             let cats = catData ? catData.value : ["Index Winner", "HDI", "Kitchen", "Sofa", "Bedroom", "Dining", "Mattress", "Home Decor"];
 
             document.getElementById('setCats').value = cats.join('\n');
             const sel = document.getElementById('inpCat');
-            // Keep first option
             sel.innerHTML = '<option value="" disabled selected>-- เลือกหมวดหมู่ --</option>';
             cats.forEach(c => {
                 const opt = document.createElement('option');
@@ -1081,6 +1121,9 @@ Home Decor</textarea>
         async function exportToExcel() {
             const sales = await db.sales.toArray();
             const sched = await db.schedule.toArray();
+            // Export Targets as well for completeness
+            const settings = await db.settings.toArray();
+
             if (sales.length === 0) return alert('ไม่มีข้อมูล');
 
             const wb = XLSX.utils.book_new();
@@ -1092,7 +1135,14 @@ Home Decor</textarea>
                 const wsSched = XLSX.utils.json_to_sheet(sched);
                 XLSX.utils.book_append_sheet(wb, wsSched, "Work_Schedule");
             }
-            XLSX.writeFile(wb, `SalesTracker_${todayStr}.xlsx`);
+            if (settings.length > 0) {
+                const wsSettings = XLSX.utils.json_to_sheet(settings);
+                XLSX.utils.book_append_sheet(wb, wsSettings, "Settings_Targets");
+            }
+
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            XLSX.writeFile(wb, `SalesTracker_${dateStr}.xlsx`);
         }
 
         async function clearAllData() {
