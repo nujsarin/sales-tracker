@@ -1,15 +1,14 @@
 {
-  "name": "Daily Sales Tracker",
-  "short_name": "SalesTrack",
+  "name": "ILM Sales Tracker",
+  "short_name": "ILM Sales",
+  "description": "Sales tracking app for Index Living Mall staff",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#FFFFFF",
-  "theme_color": "#FFDA29",
+  "theme_color": "#F5C800",
+  "orientation": "portrait",
   "icons": [
-    {
-      "src": "https://cdn-icons-png.flaticon.com/512/263/263142.png", 
-      "sizes": "192x192",
-      "type": "image/png"
-    }
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
